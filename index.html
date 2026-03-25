@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>6.3 지방선거 D-DAY</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;600;700;800;900&display=swap');
+
+  :root {
+    --red: #E61E2B;
+    --red-dark: #C4111D;
+    --red-light: #FF3D4D;
+    --blue: #00B5E2;
+    --dark: #191F28;
+    --gray-700: #4E5968;
+    --gray-500: #8B95A1;
+    --gray-300: #D1D6DB;
+    --gray-100: #F2F4F6;
+    --white: #FFFFFF;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--dark);
+    color: var(--white);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+  }
+
+  /* ── 툴바 ── */
+  .toolbar {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 6px;
+    padding: 10px 20px;
+    background: rgba(0,0,0,0.4);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+
+  .toolbar button {
+    padding: 7px 14px;
+    border: 1.5px solid rgba(255,255,255,0.2);
+    background: transparent;
+    color: rgba(255,255,255,0.7);
+    font-family: inherit;
+    font-weight: 600;
+    font-size: 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .toolbar button:hover { background: rgba(255,255,255,0.1); color: white; border-color: rgba(255,255,255,0.4); }
+  .toolbar button.primary { background: var(--red); border-color: var(--red); color: white; }
+  .toolbar button.primary:hover { background: var(--red-light); border-color: var(--red-light); }
+  .toolbar button.active { background: white; color: var(--dark); border-color: white; }
+  .toolbar .sep { width: 1px; height: 16px; background: rgba(255,255,255,0.15); margin: 0 4px; }
+
+  /* ── 모달 ── */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.6); backdrop-filter: blur(8px);
+    z-index: 2000; align-items: center; justify-content: center;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal {
+    background: var(--white); border-radius: 20px; padding: 36px;
+    width: 90%; max-width: 380px; box-shadow: 0 24px 80px rgba(0,0,0,0.3);
+    color: var(--dark);
+  }
+  .modal h3 { font-size: 20px; font-weight: 800; margin-bottom: 24px; }
+  .modal .field { margin-bottom: 16px; }
+  .modal label { display: block; font-weight: 600; font-size: 12px; color: var(--gray-500); margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.04em; }
+  .modal input {
+    width: 100%; padding: 11px 14px; border: 1.5px solid var(--gray-300);
+    border-radius: 10px; font-size: 15px; font-family: inherit; color: var(--dark); outline: none;
+  }
+  .modal input:focus { border-color: var(--red); }
+  .modal .btn-row { display: flex; gap: 10px; margin-top: 24px; }
+  .modal .btn-row button {
+    flex: 1; padding: 13px; border: none; border-radius: 12px;
+    font-size: 15px; font-weight: 700; font-family: inherit; cursor: pointer;
+  }
+  .modal .btn-save { background: var(--red); color: white; }
+  .modal .btn-cancel { background: var(--gray-100); color: var(--gray-700); }
+
+  /* ══════════════════════════════════
+     메인 카드 — 가로 슬라이드 스타일
+     ══════════════════════════════════ */
+  .slide {
+    width: 96vw;
+    height: 88vh;
+    max-width: 1400px;
+    max-height: 800px;
+    background: var(--white);
+    border-radius: 20px;
+    display: flex;
+    overflow: hidden;
+    box-shadow: 0 8px 60px rgba(0,0,0,0.4);
+    position: relative;
+  }
+
+  /* ── 왼쪽 흰색 패널 (후보 정보) ── */
+  .panel-left {
+    width: 42%;
+    background: var(--white);
+    color: var(--dark);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 36px;
+    position: relative;
+  }
+
+  /* 상단 오늘 날짜 */
+  .today-date {
+    position: absolute;
+    top: 24px;
+    left: 0; right: 0;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--gray-500);
+    letter-spacing: -0.02em;
+  }
+
+  .logo-area {
+    margin-bottom: 20px;
+  }
+
+  .logo-area img {
+    height: 60px;
+    object-fit: contain;
+  }
+
+  .logo-fallback {
+    display: none;
+    font-size: 26px;
+    font-weight: 900;
+    letter-spacing: -0.02em;
+    color: var(--dark);
+  }
+
+  .candidate-name {
+    font-size: 72px;
+    font-weight: 900;
+    color: var(--dark);
+    letter-spacing: -0.04em;
+    line-height: 1.1;
+  }
+
+  .candidate-title {
+    font-size: 44px;
+    font-weight: 800;
+    color: var(--red);
+    letter-spacing: -0.02em;
+    margin-top: 8px;
+  }
+
+  .slogan {
+    margin-top: 28px;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--gray-700);
+    padding: 14px 28px;
+    background: var(--gray-100);
+    border-radius: 14px;
+    letter-spacing: -0.02em;
+    border-left: 4px solid var(--red);
+  }
+
+  /* 왼쪽 하단 선거정보 */
+  .election-info-bottom {
+    position: absolute;
+    bottom: 20px;
+    left: 0; right: 0;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--gray-500);
+  }
+
+  /* 꼭짓점 장식 */
+  .corner {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+  }
+  .corner svg { width: 100%; height: 100%; }
+  .corner-tl { top: 16px; left: 16px; }
+  .corner-bl { bottom: 16px; left: 16px; transform: rotate(-90deg); }
+
+  /* ── 오른쪽 빨간 패널 (D-Day) ── */
+  .panel-right {
+    flex: 1;
+    color: var(--white);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 48px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* 빨간 배경을 SVG로 (인쇄 시에도 보임) */
+  .panel-right-bg {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+  }
+
+  .panel-right-bg svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  .panel-right > *:not(.panel-right-bg) {
+    position: relative;
+    z-index: 1;
+  }
+
+  .election-badge {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--white);
+    background: rgba(255,255,255,0.18);
+    padding: 8px 22px;
+    border-radius: 100px;
+    letter-spacing: 0.04em;
+    margin-bottom: 24px;
+    border: 1px solid rgba(255,255,255,0.25);
+  }
+
+  .dday-number {
+    font-size: 160px;
+    font-weight: 900;
+    color: var(--white);
+    line-height: 1;
+    letter-spacing: -0.06em;
+  }
+
+  .dday-number.dday-today {
+    font-size: 120px;
+    letter-spacing: -0.02em;
+  }
+
+  .dday-sub {
+    font-size: 16px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.75);
+    margin-top: 8px;
+    letter-spacing: -0.01em;
+  }
+
+  .election-date-right {
+    font-size: 14px;
+    font-weight: 500;
+    color: rgba(255,255,255,0.55);
+    margin-top: 4px;
+  }
+
+  /* 하단 블루 액센트 (SVG로) */
+  .blue-accent {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 4px;
+    z-index: 2;
+  }
+
+  .blue-accent svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  /* ══════════════════
+     모니터(슬라이드) 모드
+     ══════════════════ */
+  body.fullscreen-mode .toolbar { background: rgba(0,0,0,0.6); }
+
+  body.fullscreen-mode .slide {
+    width: 100vw;
+    height: 100vh;
+    max-width: none;
+    max-height: none;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  body.fullscreen-mode .panel-left { padding: 60px 56px; }
+  body.fullscreen-mode .logo-area img { height: 56px; }
+  body.fullscreen-mode .candidate-name { font-size: 96px; }
+  body.fullscreen-mode .candidate-title { font-size: 60px; }
+  body.fullscreen-mode .slogan { font-size: 20px; padding: 18px 36px; }
+  body.fullscreen-mode .today-date { font-size: 17px; top: 32px; }
+
+  body.fullscreen-mode .panel-right { padding: 60px 72px; }
+  body.fullscreen-mode .election-badge { font-size: 18px; padding: 10px 28px; }
+  body.fullscreen-mode .dday-number { font-size: 220px; }
+  body.fullscreen-mode .dday-number.dday-today { font-size: 160px; }
+  body.fullscreen-mode .dday-sub { font-size: 20px; }
+  body.fullscreen-mode .election-date-right { font-size: 16px; }
+
+  /* ══════════════
+     프린트 — 용지 꽉 차게
+     ══════════════ */
+  @media print {
+    @page { margin: 0 !important; }
+
+    html, body {
+      width: 100% !important;
+      height: 100% !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      background: white !important;
+      overflow: hidden !important;
+    }
+
+    .toolbar, .modal-overlay { display: none !important; }
+
+    .slide {
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      width: 100vw !important;
+      height: 100vh !important;
+      max-width: none !important;
+      max-height: none !important;
+      border-radius: 0 !important;
+      box-shadow: none !important;
+      margin: 0 !important;
+    }
+  }
+
+  /* A4 가로 */
+  @media print {
+    body.print-a4 .candidate-name { font-size: 60px !important; }
+    body.print-a4 .candidate-title { font-size: 38px !important; }
+    body.print-a4 .dday-number { font-size: 140px !important; }
+    body.print-a4 .dday-number.dday-today { font-size: 100px !important; }
+    body.print-a4 .panel-left { padding: 30px 28px !important; }
+    body.print-a4 .panel-right { padding: 30px 36px !important; }
+    body.print-a4 .logo-area img { height: 48px !important; }
+    body.print-a4 .slogan { font-size: 14px !important; }
+    body.print-a4 .today-date { font-size: 12px !important; top: 16px !important; }
+  }
+
+  /* A3 가로 */
+  @media print {
+    body.print-a3 .candidate-name { font-size: 84px !important; }
+    body.print-a3 .candidate-title { font-size: 56px !important; }
+    body.print-a3 .dday-number { font-size: 200px !important; }
+    body.print-a3 .dday-number.dday-today { font-size: 150px !important; }
+    body.print-a3 .slogan { font-size: 20px !important; }
+    body.print-a3 .dday-sub { font-size: 20px !important; }
+    body.print-a3 .logo-area img { height: 56px !important; }
+    body.print-a3 .today-date { font-size: 15px !important; }
+  }
+</style>
+</head>
+<body>
+
+<!-- 툴바 -->
+<div class="toolbar">
+  <button onclick="openEdit()">내용 수정</button>
+  <span class="sep"></span>
+  <button onclick="toggleFullscreen()" id="btnFullscreen">모니터 모드</button>
+  <span class="sep"></span>
+  <button class="primary" onclick="printPage('a4')">A4 인쇄</button>
+  <button class="primary" onclick="printPage('a3')">A3 인쇄</button>
+</div>
+
+<!-- 모달 -->
+<div class="modal-overlay" id="editOverlay">
+  <div class="modal">
+    <h3>내용 수정</h3>
+    <div class="field">
+      <label>이름</label>
+      <input type="text" id="editName" placeholder="홍길동">
+    </div>
+    <div class="field">
+      <label>직함</label>
+      <input type="text" id="editTitle" placeholder="경기도의원 재선">
+    </div>
+    <div class="field">
+      <label>슬로건</label>
+      <input type="text" id="editSlogan" placeholder="국민의힘으로 지역을 바꿉니다">
+    </div>
+    <div class="btn-row">
+      <button class="btn-cancel" onclick="closeEdit()">취소</button>
+      <button class="btn-save" onclick="saveEdit()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- 메인 슬라이드 -->
+<div class="slide">
+
+  <!-- 왼쪽: 흰색 패널 (후보 정보) -->
+  <div class="panel-left">
+    <div class="today-date" id="todayDate"></div>
+
+    <!-- 꼭짓점 장식 -->
+    <div class="corner corner-tl"><svg viewBox="0 0 20 20"><path d="M0 0 L20 0 L20 3 L3 3 L3 20 L0 20 Z" fill="#E61E2B" opacity="0.3"/></svg></div>
+    <div class="corner corner-bl"><svg viewBox="0 0 20 20"><path d="M0 0 L20 0 L20 3 L3 3 L3 20 L0 20 Z" fill="#E61E2B" opacity="0.3"/></svg></div>
+
+    <div class="logo-area">
+      <img src="assets/logo.svg" alt="국민의힘">
+    </div>
+
+    <div class="candidate-name" id="candidateName">심홍순 의원</div>
+    <div class="candidate-title" id="candidateTitle">경기도의원 재선까지</div>
+    <div class="slogan" id="sloganText">국민의힘으로 지역을 바꿉니다</div>
+
+    <div class="election-info-bottom">제9회 전국동시지방선거</div>
+  </div>
+
+  <!-- 오른쪽: 빨간 패널 (D-Day) — SVG 배경으로 인쇄 호환 -->
+  <div class="panel-right">
+    <!-- SVG 배경 (CSS background 대신 → 인쇄 시에도 출력됨) -->
+    <div class="panel-right-bg">
+      <svg xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none" viewBox="0 0 100 100">
+        <defs>
+          <linearGradient id="redGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#FF3D4D"/>
+            <stop offset="50%" stop-color="#E61E2B"/>
+            <stop offset="100%" stop-color="#C4111D"/>
+          </linearGradient>
+        </defs>
+        <rect width="100" height="100" fill="url(#redGrad)"/>
+      </svg>
+    </div>
+
+    <div class="election-badge">제9회 전국동시지방선거</div>
+    <div class="dday-number" id="ddayNumber">D-70</div>
+    <div class="dday-sub">선거일까지</div>
+    <div class="election-date-right">2026년 6월 3일 수요일</div>
+
+  </div>
+
+</div>
+
+<script>
+  const ELECTION_DATE = new Date('2026-06-03T00:00:00');
+
+  function loadSettings() {
+    const saved = localStorage.getItem('dday-settings');
+    if (saved) {
+      const s = JSON.parse(saved);
+      if (s.name) document.getElementById('candidateName').textContent = s.name;
+      if (s.title) document.getElementById('candidateTitle').textContent = s.title;
+      if (s.slogan) document.getElementById('sloganText').textContent = s.slogan;
+    }
+  }
+
+  function saveSettings(name, title, slogan) {
+    localStorage.setItem('dday-settings', JSON.stringify({ name, title, slogan }));
+  }
+
+  function updateDday() {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const diff = Math.ceil((ELECTION_DATE - today) / (1000 * 60 * 60 * 24));
+    const el = document.getElementById('ddayNumber');
+
+    if (diff > 0) {
+      el.textContent = `D-${diff}`;
+      el.classList.remove('dday-today');
+    } else if (diff === 0) {
+      el.textContent = 'D-DAY';
+      el.classList.add('dday-today');
+    } else {
+      el.textContent = `D+${Math.abs(diff)}`;
+      el.classList.remove('dday-today');
+    }
+
+    const opts = { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' };
+    document.getElementById('todayDate').textContent = now.toLocaleDateString('ko-KR', opts);
+  }
+
+  function openEdit() {
+    document.getElementById('editName').value = document.getElementById('candidateName').textContent;
+    document.getElementById('editTitle').value = document.getElementById('candidateTitle').textContent;
+    document.getElementById('editSlogan').value = document.getElementById('sloganText').textContent;
+    document.getElementById('editOverlay').classList.add('show');
+  }
+  function closeEdit() { document.getElementById('editOverlay').classList.remove('show'); }
+  function saveEdit() {
+    const name = document.getElementById('editName').value.trim() || '심홍순 의원';
+    const title = document.getElementById('editTitle').value.trim() || '경기도의원 재선까지';
+    const slogan = document.getElementById('editSlogan').value.trim() || '국민의힘으로 지역을 바꿉니다';
+    document.getElementById('candidateName').textContent = name;
+    document.getElementById('candidateTitle').textContent = title;
+    document.getElementById('sloganText').textContent = slogan;
+    saveSettings(name, title, slogan);
+    closeEdit();
+  }
+
+  let isFullscreen = false;
+  function toggleFullscreen() {
+    isFullscreen = !isFullscreen;
+    document.body.classList.toggle('fullscreen-mode', isFullscreen);
+    const btn = document.getElementById('btnFullscreen');
+    btn.textContent = isFullscreen ? '일반 모드' : '모니터 모드';
+    btn.classList.toggle('active', isFullscreen);
+  }
+
+  function printPage(size) {
+    document.body.classList.remove('print-a4', 'print-a3');
+    document.body.classList.add('print-' + size);
+    let pageStyle = document.getElementById('dynamic-page-style');
+    if (!pageStyle) {
+      pageStyle = document.createElement('style');
+      pageStyle.id = 'dynamic-page-style';
+      document.head.appendChild(pageStyle);
+    }
+    const s = size === 'a3' ? '420mm 297mm' : '297mm 210mm';
+    pageStyle.textContent = `@media print { @page { size: ${s}; margin: 0 !important; } }`;
+    window.print();
+  }
+
+  function scheduleNextUpdate() {
+    const now = new Date();
+    const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+    setTimeout(() => { updateDday(); scheduleNextUpdate(); }, tomorrow - now + 1000);
+  }
+
+  setInterval(updateDday, 60000);
+  loadSettings();
+  updateDday();
+  scheduleNextUpdate();
+</script>
+</body>
+</html>
